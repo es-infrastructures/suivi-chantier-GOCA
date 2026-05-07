@@ -1,5 +1,11 @@
-const CACHE = 'goca-v1';
-const ASSETS = ['./index.html', './manifest.json', './logo-goca.svg'];
+const CACHE = 'goca-v2';
+const BASE = '/suivi-chantier-goca';
+const ASSETS = [
+  BASE + '/',
+  BASE + '/index.html',
+  BASE + '/manifest.json',
+  BASE + '/logo-goca.svg'
+];
 
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)));
@@ -16,6 +22,20 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = e.request.url;
   if (url.includes('firebase') || url.includes('googleapis') || url.includes('gstatic') || url.includes('open-meteo')) return;
+
+  if (e.request.mode === 'navigate') {
+    e.respondWith(
+      fetch(e.request)
+        .then(res => {
+          const clone = res.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+          return res;
+        })
+        .catch(() => caches.match(BASE + '/index.html'))
+    );
+    return;
+  }
+
   e.respondWith(
     fetch(e.request).then(res => {
       const clone = res.clone();
